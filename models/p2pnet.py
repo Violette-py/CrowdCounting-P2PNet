@@ -12,7 +12,7 @@ from .matcher import build_matcher_crowd
 import numpy as np
 import time
 
-# the network frmawork of the regression branch
+# the network framework of the regression branch
 class RegressionModel(nn.Module):
     def __init__(self, num_features_in, num_anchor_points=4, feature_size=256):
         super(RegressionModel, self).__init__()
@@ -44,7 +44,7 @@ class RegressionModel(nn.Module):
 
         return out.contiguous().view(out.shape[0], -1, 2)
 
-# the network frmawork of the classification branch
+# the network framework of the classification branch
 class ClassificationModel(nn.Module):
     def __init__(self, num_features_in, num_anchor_points=4, num_classes=80, prior=0.01, feature_size=256):
         super(ClassificationModel, self).__init__()
@@ -190,11 +190,19 @@ class Decoder(nn.Module):
 
         return [P3_x, P4_x, P5_x]
 
+from .TFAM import TFAM
+
 # the defenition of the P2PNet model
 class P2PNet(nn.Module):
     def __init__(self, backbone, row=2, line=2):
         super().__init__()
+        
         self.backbone = backbone
+        # NOTE: backbone分别处理两流输入
+        self.backbone_visible = backbone
+        self.backbone_infrared = backbone
+
+        
         self.num_classes = 2
         # the number of all anchor points
         num_anchor_points = row * line
@@ -208,17 +216,44 @@ class P2PNet(nn.Module):
 
         self.fpn = Decoder(256, 512, 512)
 
-    def forward(self, samples: NestedTensor):
+    # def forward(self, samples: NestedTensor):
+    def forward(self, samples_visible: NestedTensor, samples_infrared: NestedTensor):
         # get the backbone features
-        features = self.backbone(samples)
+        # features = self.backbone(samples)  # list
+        # print(f"features[0].shape = {features[0].shape}") #([32, 128, 64, 64])
+        # print(f"features[1].shape = {features[1].shape}") #([32, 256, 32, 32])
+        # print(f"features[2].shape = {features[2].shape}") #([32, 512, 16, 16])
+        # print(f"features[3].shape = {features[3].shape}") #([32, 512, 8, 8])
+        
+        # NOTE: 获取可见光和红外光的特征
+        features_visible = self.backbone_visible(samples_visible)
+        features_infrared = self.backbone_infrared(samples_infrared)
+        
+        # print(f"features_visible.len = {len(features_visible)}")
+        # print(f"features_visible[0].shape = {features_visible[0].shape}")  # torch.Size([32, 128, 64, 64])
+
+        # NOTE: 特征融合
+        features = [[]] * len(features_visible)
+        for i, feature_visible in enumerate(features_visible):
+            # NOTE: 特征融合层
+            fusion = TFAM(in_channel=feature_visible.shape[-1]) 
+            fusion.to('cuda')
+            features[i] = fusion(features_visible[i], features_infrared[i])
+        # features = self.fusion(features_visible, features_infrared) # 融合后的特征
+        
+        
         # forward the feature pyramid
         features_fpn = self.fpn([features[1], features[2], features[3]])
+        
+        # print(f"features_fpn[1].shape = {features_fpn[1].shape}")
+        # print(f"features_fpn[2].shape = {features_fpn[2].shape}")
 
         batch_size = features[0].shape[0]
         # run the regression and classification branch
         regression = self.regression(features_fpn[1]) * 100 # 8x
         classification = self.classification(features_fpn[1])
-        anchor_points = self.anchor_points(samples).repeat(batch_size, 1, 1)
+        anchor_points = self.anchor_points(samples_visible).repeat(batch_size, 1, 1)
+        # anchor_points = self.anchor_points(samples).repeat(batch_size, 1, 1)
         # decode the points as prediction
         output_coord = regression + anchor_points
         output_class = classification

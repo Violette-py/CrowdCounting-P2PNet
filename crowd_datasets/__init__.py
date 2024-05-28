@@ -6,5 +6,8 @@ def build_dataset(args):
     elif args.dataset_file == 'DroneRGBT':
         from crowd_datasets.DroneRGBT.loading_data import loading_data
         return loading_data
+    elif args.dataset_file == 'DroneRGBTDual':
+        from crowd_datasets.DroneRGBT.loading_dual_data import loading_data
+        return loading_data
 
     return None

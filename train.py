@@ -27,7 +27,8 @@ def get_args_parser():
     parser.add_argument('--clip_max_norm', default=0.1, type=float,
                         help='gradient clipping max norm')
 
-    # Model parameters
+    # Model parameters  
+    # TODO: 可以尝试加载一下预训练权重
     parser.add_argument('--frozen_weights', type=str, default=None,
                         help="Path to the pretrained model. If set, only the mask head will be trained")
 
@@ -43,6 +44,7 @@ def get_args_parser():
                         help="L1 point coefficient in the matching cost")
 
     # * Loss coefficients
+    # TODO: 可以尝试调一下参
     parser.add_argument('--point_loss_coef', default=0.0002, type=float)
 
     parser.add_argument('--eos_coef', default=0.5, type=float,
@@ -53,33 +55,49 @@ def get_args_parser():
                         help="line number of anchor points")
 
     # dataset parameters
-    # TODO: 重写 数据集路径
-    parser.add_argument('--dataset_file', default='DroneRGBT')
+    # TODO: 重写 使用的数据集
+    parser.add_argument('--dataset_file', default='DroneRGBTDual')  # NOTE: 双流输入
+    # parser.add_argument('--dataset_file', default='DroneRGBT')
     # parser.add_argument('--dataset_file', default='SHHA')
     # NOTE: 用于loading_data，最好设置成环境变量的绝对路径
     # parser.add_argument('--data_root', default='D:\Desktop\AIA\DroneRGBT',  
     #                     help='path where the dataset is')
     
     # TODO: RGB & TIR
-    parser.add_argument('--train_img_dir', default='/root/notebook/violette/DroneRGBT/Train/RGB',  
+    # parser.add_argument('--train_img_dir', default='/root/notebook/violette/DroneRGBT/Train/RGB',  
+    #                     help='path where the train image in')
+    # parser.add_argument('--train_gt_dir', default='/root/notebook/violette/DroneRGBT/Train/GT_Point',  
+    #                     help='path where the train ground truth in')
+    # parser.add_argument('--test_img_dir', default='/root/notebook/violette/DroneRGBT/Random_Val/RGB',  
+    #                     help='path where the test image in')
+    # parser.add_argument('--test_gt_dir', default='/root/notebook/violette/DroneRGBT/Random_Val/GT_Point',  
+    #                     help='path where the test ground truth in')  
+    
+    parser.add_argument('--train_rgb_dir', default='D:/Desktop/AIA/DroneRGBT/Train/RGB',  
                         help='path where the train image in')
-    parser.add_argument('--train_gt_dir', default='/root/notebook/violette/DroneRGBT/Train/GT_Point',  
+    parser.add_argument('--train_tir_dir', default='D:/Desktop/AIA/DroneRGBT/Train/Infrared',  
+                        help='path where the train image in')
+    parser.add_argument('--train_gt_dir', default='D:/Desktop/AIA/DroneRGBT/Train/GT_Point',  
                         help='path where the train ground truth in')
-    parser.add_argument('--test_img_dir', default='/root/notebook/violette/DroneRGBT/Random_Val/RGB',  
+    parser.add_argument('--test_rgb_dir', default='D:/Desktop/AIA/DroneRGBT/Val/RGB',  
                         help='path where the test image in')
-    parser.add_argument('--test_gt_dir', default='/root/notebook/violette/DroneRGBT/Random_Val/GT_Point',  
+    parser.add_argument('--test_tir_dir', default='D:/Desktop/AIA/DroneRGBT/Val/Infrared',  
+                        help='path where the test image in')
+    parser.add_argument('--test_gt_dir', default='D:/Desktop/AIA/DroneRGBT/Val/GT_Point',  
                         help='path where the test ground truth in')  
+    
+    # NOTE: 把val改成val select
     
     # parser.add_argument('--img_dirs', default='D:/Desktop/AIA/DroneRGBT/Train/RGB|D:/Desktop/AIA/DroneRGBT/Test/RGB',  
     #                     help='path where the train image in')
     # parser.add_argument('--gt_dirs', default='D:/Desktop/AIA/DroneRGBT/Train/GT_Point|D:/Desktop/AIA/DroneRGBT/Test/GT_Point',  
     #                     help='path where the train ground truth in') 
     
-    parser.add_argument('--output_dir', default='./logs',
+    parser.add_argument('--output_dir', default='D:/Desktop/AIA/CrowdCounting-P2PNet/logs',
                         help='path where to save, empty for no saving')
-    parser.add_argument('--checkpoints_dir', default='./weights',
+    parser.add_argument('--checkpoints_dir', default='D:/Desktop/AIA/CrowdCounting-P2PNet/weights',
                         help='path where to save checkpoints, empty for no saving')
-    parser.add_argument('--tensorboard_dir', default='./logs',
+    parser.add_argument('--tensorboard_dir', default='D:/Desktop/AIA/CrowdCounting-P2PNet/logs',
                         help='path where to save, empty for no saving')
 
     parser.add_argument('--seed', default=42, type=int)
@@ -151,7 +169,7 @@ def main(args):
     # train_size = int(0.8 * len(dataset))  
     # val_size = len(dataset) - train_size
     # train_set, val_set = random_split(dataset, [train_size, val_size])
-    train_set, val_set = loading_data(args.train_img_dir, args.train_gt_dir, args.test_img_dir, args.test_gt_dir)
+    train_set, val_set = loading_data(args.train_rgb_dir, args.train_tir_dir, args.train_gt_dir, args.test_rgb_dir, args.test_tir_dir, args.test_gt_dir)
     # print(f"len(train_set) = {len(train_set)}")
     # print(f"train_set.img_list = {train_set.img_list}")
     # print(f"train_set.img_map = {train_set.img_map}")
@@ -160,10 +178,11 @@ def main(args):
     sampler_train = torch.utils.data.RandomSampler(train_set)  # 随机采样
     sampler_val = torch.utils.data.SequentialSampler(val_set)  # 顺序采样
 
+    # print(f"args.batch_size = {args.batch_size}")
     batch_sampler_train = torch.utils.data.BatchSampler(
         sampler_train, args.batch_size, drop_last=True)
     # the dataloader for training
-    # TODO: 重写 DataLoader？
+    # TODO: 重写 DataLoader
     data_loader_train = DataLoader(train_set, batch_sampler=batch_sampler_train,
                                    collate_fn=utils.collate_fn_crowd, num_workers=args.num_workers)
 

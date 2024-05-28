@@ -274,21 +274,70 @@ def collate_fn(batch):
     batch[0] = nested_tensor_from_tensor_list(batch[0])
     return tuple(batch)
 
+# def collate_fn_crowd(batch):
+#     # re-organize the batch
+#     batch_new = []
+#     for b in batch:
+#         imgs, tirs, points = b
+#         if imgs.ndim == 3:
+#             imgs = imgs.unsqueeze(0) # 将单个图像转换为形状为 [1, C, H, W] 
+#         # 遍历处理每个图像（如果imgs是多图像张量，则会遍历每个图像）
+#         for i in range(len(imgs)):
+#             batch_new.append((imgs[i, :, :, :], points[i]))
+#     batch = batch_new
+#     batch = list(zip(*batch))
+#     batch[0] = nested_tensor_from_tensor_list(batch[0])
+#     return tuple(batch)
+
 def collate_fn_crowd(batch):
     # re-organize the batch
     batch_new = []
     for b in batch:
-        imgs, points = b
-        if imgs.ndim == 3:
-            imgs = imgs.unsqueeze(0) # 将单个图像转换为形状为 [1, C, H, W] 
+        rgbs, tirs, points = b
+        if rgbs.ndim == 3:
+            rgbs = rgbs.unsqueeze(0) # 将单个图像转换为形状为 [1, C, H, W] 
+        if tirs.ndim == 3:
+            tirs = tirs.unsqueeze(0) # 将单个图像转换为形状为 [1, C, H, W] 
         # 遍历处理每个图像（如果imgs是多图像张量，则会遍历每个图像）
-        for i in range(len(imgs)):
-            batch_new.append((imgs[i, :, :, :], points[i]))
+        for i in range(len(rgbs)):
+            batch_new.append((rgbs[i, :, :, :], tirs[i, :, :, :], points[i]))
     batch = batch_new
     batch = list(zip(*batch))
     batch[0] = nested_tensor_from_tensor_list(batch[0])
+    batch[1] = nested_tensor_from_tensor_list(batch[1])
     return tuple(batch)
 
+"""
+def collate_fn_crowd(batch):
+    # 初始化列表，用于存储处理后的图像和标注
+    rgb_imgs_list = []
+    tir_imgs_list = []
+    targets_list = []
+
+    # 遍历批次中的每个样本
+    for rgb_img, tir_img, target in batch:
+        # 检查图像维度，如果是单张图像而不是批量，增加一个维度
+        if rgb_img.ndim == 3:
+            rgb_img = rgb_img.unsqueeze(0)
+        if tir_img.ndim == 3:
+            tir_img = tir_img.unsqueeze(0)
+        
+        # 将图像和标注添加到列表中
+        rgb_imgs_list.append(rgb_img)
+        tir_imgs_list.append(tir_img)
+        targets_list.append(target)
+
+    # 使用 nested_tensor_from_tensor_list 将图像列表转换为 NestedTensor
+    rgb_imgs = nested_tensor_from_tensor_list(rgb_imgs_list)
+    tir_imgs = nested_tensor_from_tensor_list(tir_imgs_list)
+    # tir_imgs = torch.stack(tir_imgs_list)  # 将图像列表堆叠成批次张量 未nested
+
+    # 将标注列表转换为常规张量
+    targets = torch.stack(targets_list)
+
+    # 返回包含处理后的图像和标注的元组
+    return rgb_imgs, tir_imgs, targets
+"""
 
 def _max_by_axis(the_list):
     # type: (List[List[int]]) -> List[int]

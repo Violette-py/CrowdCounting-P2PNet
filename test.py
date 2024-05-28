@@ -32,14 +32,17 @@ def get_args_parser():
     # NOTE: 输入文件夹
     # TODO: RGB & TIR
     # parser.add_argument('--input_dir', default='/root/notebook/violette/dataset/test/tir',  # tir
-    parser.add_argument('--input_dir', default='/root/notebook/violette/dataset/test/rgb',  # rgb
+    # parser.add_argument('--input_dir', default='/root/notebook/violette/dataset/test/rgb',  # rgb
+    parser.add_argument('--input_dir', default='D:/Desktop/AIA/DroneRGBT/Final',  # rgb
                         help='path where to read picture and predict')
-    # NOTE: 输出文件夹
-    parser.add_argument('--output_dir', default='/root/notebook/violette/CrowdCounting-P2PNet/output',  
+    # NOTE: 输出文件夹  
+    # parser.add_argument('--output_dir', default='/root/notebook/violette/CrowdCounting-P2PNet/output',  
+    parser.add_argument('--output_dir', default='D:/Desktop/AIA/CrowdCounting-P2PNet/output',  
                         help='path where to save')
     # NOTE: 训练好的模型权重
-    parser.add_argument('--weight_path', default='/root/notebook/violette/CrowdCounting-P2PNet/weights/best_mae.pth', 
+    # parser.add_argument('--weight_path', default='/root/notebook/violette/CrowdCounting-P2PNet/weights/best_mae.pth', 
     # parser.add_argument('--weight_path', default='/root/notebook/violette/CrowdCounting-P2PNet/weights/SHTechA.pth', 
+    parser.add_argument('--weight_path', default='D:/Desktop/AIA/CrowdCounting-P2PNet/weights/best_mae.pth', 
                         help='path where the trained weights saved')
 
     parser.add_argument('--gpu_id', default=0, type=int, help='the gpu used for evaluation')
@@ -69,43 +72,54 @@ def main(args, debug=False):
     # convert to eval mode
     model.eval()
     # create the pre-processing transform
-    transform = standard_transforms.Compose([
+    rgb_transform = standard_transforms.Compose([
         standard_transforms.ToTensor(), 
-        standard_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        standard_transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]),
+    ])
+    
+    tir_transform = standard_transforms.Compose([
+        standard_transforms.ToTensor(),
+        standard_transforms.Normalize(
+            mean=[0.492, 0.168, 0.430],
+            std=[0.317, 0.174, 0.191]),
     ])
 
-    # TODO: 换成测试集图片路径 -- 目前只预测了单张
-    # set your image path here
-    # img_path = "./vis/410.jpg"
-    # img_path = "./vis/demo1.jpg"
-    
-    # TODO: RGB & TIR
-    # img_paths = [f"{args.input_dir}/{i}R.jpg" for i in range(1, 1001)]  # tir
-    img_paths = [f"{args.input_dir}/{i}.jpg" for i in range(1, 1001)]  # rgb
+    rgb_paths = [f"{args.input_dir}/rgb/{i}.jpg" for i in range(1, 1001)]  
+    tir_paths = [f"{args.input_dir}/tir/{i}R.jpg" for i in range(1, 1001)]  
     
     count_list = []
     
-    for i in range(len(img_paths)):
+    for i in range(len(rgb_paths)):
         
-        img_path = img_paths[i]
+        rgb_path = rgb_paths[i]
+        tir_path = tir_paths[i]
     
         # load the images
-        img_raw = Image.open(img_path)  # tir
-        # img_raw = Image.open(img_path).convert('RGB')  # rgb
+        # img_raw = Image.open(img_path)  # tir
+        rgb_img_raw = Image.open(rgb_path).convert('RGB')  # rgb
+        tir_img_raw = Image.open(tir_path).convert('RGB')  
         # round the size
-        width, height = img_raw.size
+        width, height = rgb_img_raw.size
         new_width = width // 128 * 128
         new_height = height // 128 * 128
+        
         #img_raw = img_raw.resize((new_width, new_height), Image.ANTIALIAS)
         # 新版本的Pillow
-        img_raw = img_raw.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        rgb_img_raw = rgb_img_raw.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        tir_img_raw = tir_img_raw.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        
         # pre-proccessing
-        img = transform(img_raw)
+        rgb_img = rgb_transform(rgb_img_raw)
+        tir_img = tir_transform(tir_img_raw)
 
-        samples = torch.Tensor(img).unsqueeze(0)
-        samples = samples.to(device)
+        rgb_samples = torch.Tensor(rgb_img).unsqueeze(0)
+        tir_samples = torch.Tensor(tir_img).unsqueeze(0)
+        rgb_samples = rgb_samples.to(device)
+        tir_samples = tir_samples.to(device)
         # run inference
-        outputs = model(samples)
+        outputs = model(rgb_samples, tir_samples)
         outputs_scores = torch.nn.functional.softmax(outputs['pred_logits'], -1)[:, :, 1][0]
 
         # NOTE: 预测的点
@@ -133,7 +147,7 @@ def main(args, debug=False):
         
         # draw the predictions
         size = 2
-        img_to_draw = cv2.cvtColor(np.array(img_raw), cv2.COLOR_RGB2BGR)
+        img_to_draw = cv2.cvtColor(np.array(rgb_img_raw), cv2.COLOR_RGB2BGR)
         for p in points:
             img_to_draw = cv2.circle(img_to_draw, (int(p[0]), int(p[1])), size, (0, 0, 255), -1)
         # save the visualized image
@@ -143,7 +157,7 @@ def main(args, debug=False):
         # cv2.imwrite(os.path.join(args.output_dir, 'pred{}.jpg'.format(predict_cnt)), img_to_draw)
     
     with open('ans.txt', 'w') as file:
-        for i in range(len(img_paths)):
+        for i in range(len(rgb_paths)):
             file.write(f"{i+1},{count_list[i]}\n")
 
 if __name__ == '__main__':

@@ -11,7 +11,6 @@ from typing import Iterable
 import torch
 
 import util.misc as utils
-from util.misc import NestedTensor
 import numpy as np
 import time
 import torchvision.transforms as standard_transforms
@@ -82,11 +81,20 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     # iterate all training samples
-    for samples, targets in data_loader:
-        samples = samples.to(device)
+    for rgb_samples, tir_samples, targets in data_loader:  # 双模态
+    # for samples, targets in data_loader:
+        # print(f"batch size in training = {samples.shape}")
+        
+        # 确保模型在同一个设备上
+        model.to(device)
+            
+        rgb_samples = rgb_samples.to(device)
+        tir_samples = tir_samples.to(device)
+        # samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         # forward
-        outputs = model(samples)
+        outputs = model(rgb_samples, tir_samples)
+        # outputs = model(rgb_samples)
         # calc the losses
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
@@ -130,10 +138,14 @@ def evaluate_crowd_no_overlap(model, data_loader, device, vis_dir=None):
     # run inference on all images to calc MAE
     maes = []
     mses = []
-    for samples, targets in data_loader:
-        samples = samples.to(device)
+    for rgb_samples, tir_samples, targets in data_loader:
+    # for samples, targets in data_loader:
+        # samples = samples.to(device)
+        rgb_samples = rgb_samples.to(device)
+        tir_samples = tir_samples.to(device)
 
-        outputs = model(samples)
+        outputs = model(rgb_samples, tir_samples)
+        # outputs = model(samples)
         outputs_scores = torch.nn.functional.softmax(outputs['pred_logits'], -1)[:, :, 1][0]
 
         outputs_points = outputs['pred_points'][0]
@@ -147,7 +159,8 @@ def evaluate_crowd_no_overlap(model, data_loader, device, vis_dir=None):
         # if specified, save the visualized images  
         # TODO: 可以保存可视化的图片
         if vis_dir is not None: 
-            vis(samples, targets, [points], vis_dir)
+            vis(rgb_samples, targets, [points], vis_dir)
+            # vis(samples, targets, [points], vis_dir)
         # accumulate MAE, MSE
         mae = abs(predict_cnt - gt_cnt)
         mse = (predict_cnt - gt_cnt) * (predict_cnt - gt_cnt)

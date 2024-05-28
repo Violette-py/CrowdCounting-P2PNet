@@ -26,7 +26,7 @@ model_urls = {
 
 model_paths = {
     # TODO: 换成自己下载的vgg16_bn路径
-    'vgg16_bn': './weights/vgg16_bn-6c64b313.pth',
+    'vgg16_bn': 'D:/Desktop/AIA/CrowdCounting-P2PNet/weights/vgg16_bn-6c64b313.pth',
     'vgg16': '/apdcephfs/private_changanwang/checkpoints/vgg16-397923af.pth',
 
 }
