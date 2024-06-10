@@ -162,7 +162,3 @@ If you find P2PNet is useful in your project, please consider citing us:
 ## Related works from Tencent Youtu Lab
 - [AAAI2021] To Choose or to Fuse? Scale Selection for Crowd Counting. ([paper link](https://ojs.aaai.org/index.php/AAAI/article/view/16360) & [codes](https://github.com/TencentYoutuResearch/CrowdCounting-SASNet))
 - [ICCV2021] Uniformity in Heterogeneity: Diving Deep into Count Interval Partition for Crowd Counting. ([paper link](https://arxiv.org/abs/2107.12619) & [codes](https://github.com/TencentYoutuResearch/CrowdCounting-UEPNet))
-=======
-# Violette-py-CrowdCounting-P2PNet
-腾讯优图 P2PNet (ICCV2021 Oral Presentation) 复现
->>>>>>> 40f0417e756861dd29ea34b9d3d7a01998600df7

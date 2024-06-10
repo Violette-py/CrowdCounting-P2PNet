@@ -59,11 +59,7 @@ def get_args_parser():
     parser.add_argument('--dataset_file', default='DroneRGBTDual')  # NOTE: 双流输入
     # parser.add_argument('--dataset_file', default='DroneRGBT')
     # parser.add_argument('--dataset_file', default='SHHA')
-    # NOTE: 用于loading_data，最好设置成环境变量的绝对路径
-    # parser.add_argument('--data_root', default='D:\Desktop\AIA\DroneRGBT',  
-    #                     help='path where the dataset is')
     
-    # TODO: RGB & TIR
     # parser.add_argument('--train_img_dir', default='/root/notebook/violette/DroneRGBT/Train/RGB',  
     #                     help='path where the train image in')
     # parser.add_argument('--train_gt_dir', default='/root/notebook/violette/DroneRGBT/Train/GT_Point',  
@@ -85,13 +81,6 @@ def get_args_parser():
                         help='path where the test image in')
     parser.add_argument('--test_gt_dir', default='D:/Desktop/AIA/DroneRGBT/Val/GT_Point',  
                         help='path where the test ground truth in')  
-    
-    # NOTE: 把val改成val select
-    
-    # parser.add_argument('--img_dirs', default='D:/Desktop/AIA/DroneRGBT/Train/RGB|D:/Desktop/AIA/DroneRGBT/Test/RGB',  
-    #                     help='path where the train image in')
-    # parser.add_argument('--gt_dirs', default='D:/Desktop/AIA/DroneRGBT/Train/GT_Point|D:/Desktop/AIA/DroneRGBT/Test/GT_Point',  
-    #                     help='path where the train ground truth in') 
     
     parser.add_argument('--output_dir', default='D:/Desktop/AIA/CrowdCounting-P2PNet/logs',
                         help='path where to save, empty for no saving')
@@ -160,9 +149,6 @@ def main(args):
     # create the dataset
     loading_data = build_dataset(args=args)
     # create the training and valiation set
-    # TODO: 重写 导入数据集
-    # BUG: 原始数据集的测试集，没有132、181、296、314
-    # TODO: 验证集目前用的是原始数据集的前452 - 1张，可以每次从里面随机选一些
     print("==== preprocessing dataset ====")
     # dataset = loading_data(args.img_dirs, args.gt_dirs)
     # # 按照 8:2 划分训练集和验证集

@@ -32,13 +32,13 @@ def get_args_parser():
     # NOTE: 输入文件夹
     # TODO: RGB & TIR
     # parser.add_argument('--input_dir', default='/root/notebook/violette/dataset/test/tir',  # tir
-    parser.add_argument('--input_dir', default='/root/notebook/violette/dataset/test/rgb',  # rgb
+    parser.add_argument('--input_dir', default='D:/Desktop/AIA/DroneRGBT/Final/rgb',  # rgb
                         help='path where to read picture and predict')
     # NOTE: 输出文件夹
-    parser.add_argument('--output_dir', default='/root/notebook/violette/CrowdCounting-P2PNet/output',  
+    parser.add_argument('--output_dir', default='D:/Desktop/AIA/CrowdCounting-P2PNet/output',  
                         help='path where to save')
     # NOTE: 训练好的模型权重
-    parser.add_argument('--weight_path', default='/root/notebook/violette/CrowdCounting-P2PNet/weights/best_mae.pth', 
+    parser.add_argument('--weight_path', default='D:/Desktop/AIA/CrowdCounting-P2PNet/weights/12.838.pth', 
     # parser.add_argument('--weight_path', default='/root/notebook/violette/CrowdCounting-P2PNet/weights/SHTechA.pth', 
                         help='path where the trained weights saved')
 
@@ -73,11 +73,6 @@ def main(args, debug=False):
         standard_transforms.ToTensor(), 
         standard_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
-
-    # TODO: 换成测试集图片路径 -- 目前只预测了单张
-    # set your image path here
-    # img_path = "./vis/410.jpg"
-    # img_path = "./vis/demo1.jpg"
     
     # TODO: RGB & TIR
     # img_paths = [f"{args.input_dir}/{i}R.jpg" for i in range(1, 1001)]  # tir
